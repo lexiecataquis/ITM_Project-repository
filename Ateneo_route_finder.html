@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ateneo Running/Walking Route Finder</title>
+    <style>
+        /* CSS */
+        #map {
+            height: 400px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        #routeInfo {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        #stopList {
+            margin-top: 10px;
+        }
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: #537ea6;
+        }
+        h1 {
+            text-align: center;
+            color: aliceblue;
+        }
+        #inputContainer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+            border-style: solid;
+            border-width: 0px;
+            border-radius: 10px;
+            background-color: aliceblue;
+            padding-top: 20px;
+            padding-bottom: 20px;
+        }
+        #stopList {
+            text-align: center;
+        }
+        #routeInfo {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Ateneo Running/Walking Route Finder</h1>
+    <div id="inputContainer">
+        <form id="routeForm">
+            <label for="starting_point">Starting point:</label>
+            <select id="starting_point" name="starting_point">
+                <option value="International Residence Ateneo de Manila University, Quezon City, Metro Manila, Philippines">IRH</option>
+                <option value="Leong Hall, Quezon City, Metro Manila, Philippines">Leong Hall</option>
+                <option value="Xavier Hall, Quezon City, Metro Manila, Philippines">Xavier Hall</option>
+                <option value="Ateneo College Covered Courts, Seminary Rd, Quezon City, Metro Manila, Philippines">Covered Courts</option>
+                <option value="John Gokongwei Student Enterprise Center (JSEC), Quezon City, Metro Manila, Philippines">JSEC</option>
+                <option value="Arete Ateneo, Katipunan Avenue, Quezon City, Metro Manila, Philippines">Ateneo Art Gallery</option>
+                <option value="Loyola House of Studies Carpark">Loyola House of Studies Carpark</option>
+                <option value="Berchmans Hall, Quezon City, Metro Manila, Philippines">Berchmans Hall</option>
+                <option value="Matteo Ricci Study Hall, Quezon City, Metro Manila, Philippines">Matteo Ricci Study Hall</option>
+                <option value="Moro Baseball Field, Quezon City, Metro Manila, Philippines">Moro Baseball Field</option>
+                <option value="Gonzaga Cafeteria, Quezon City, Metro Manila, Philippines">Gonzaga Cafeteria</option>
+                <option value="Pipac Building, Quezon City, Metro Manila, Philippines">Pipac Building</option>
+                <option value="Schmitt Building, Quezon City, Metro Manila, Philippines">Schmitt Building</option>
+                <option value="Ocampo Field, Quezon City, Metro Manila, Philippines">Ocampo Field</option>
+                <option value="Rizal Library, Quezon City, Metro Manila, Philippines">Rizal Library</option>
+                <option value="ISO Cafeteria, Quezon City, Metro Manila, Philippines">ISO Cafeteria</option>
+                <option value="Bellarmine Hall, Quezon City, Metro Manila, Philippines">Bellarmine Hall</option>
+                <option value="Church of Gesu, Quezon City, Metro Manila, Philippines">Church of Gesu</option>
+                <option value="Kostka Hall, Quezon City, Metro Manila, Philippines">Kostka Hall</option>
+                <option value="Faura Hall, Quezon City, Metro Manila, Philippines">Faura Hall</option>
+                <option value="EBais, Quezon City, Metro Manila, Philippines">EBais</option>
+                <option value="Cervini, Quezon City, Metro Manila, Philippines">Cervini</option>
+            </select>
+            <label for="distance">Distance (m):</label>
+            <input type="number" id="distance" name="distance" placeholder="Enter distance" required min="200">
+            <label for="loop">Loop:</label>
+            <input type="checkbox" id="loop" name="loop">
+            <button type="submit">Find Route</button>
+        </form>
+    </div>
+    
+    <div id="routeInfo"></div>
+    <div id="stopList"></div>
+    <div id="map"></div>
+
+    <script>
+        var map, directionsService, directionsRenderer;
+        // place and distance from default stop:IRH (to prevent having to add available waypoints for each stop)
+        const stops = [
+            {name: 'Xavier Hall, Quezon City, Metro Manila, Philippines', distance: 186},
+            {name: 'John Gokongwei Student Enterprise Center (JSEC), Quezon City, Metro Manila, Philippines', distance: 437},
+            {name: 'Ateneo College Covered Courts, Seminary Rd, Quezon City, Metro Manila, Philippines', distance: 451},
+            {name: 'Leong Hall, Quezon City, Metro Manila, Philippines', distance: 466},
+            {name: 'Arete Ateneo, Katipunan Avenue, Quezon City, Metro Manila, Philippines', distance: 548},
+            {name: 'Loyola House of Studies Carpark', distance: 604},
+            {name: 'Berchmans Hall, Quezon City, Metro Manila, Philippines', distance: 350},
+            {name: 'Matteo Ricci Study Hall, Quezon City, Metro Manila, Philippines', distance: 200},
+            {name: 'Moro Baseball Field, Quezon City, Metro Manila, Philippines', distance: 300},
+            {name: 'Gonzaga Cafeteria, Quezon City, Metro Manila, Philippines', distance: 250},
+            {name: 'Pipac Building, Quezon City, Metro Manila, Philippines', distance: 300},
+            {name: 'Schmitt Building, Quezon City, Metro Manila, Philippines', distance: 150},
+            {name: 'Ocampo Field, Quezon City, Metro Manila, Philippines', distance: 350},
+            {name: 'Rizal Library, Quezon City, Metro Manila, Philippines', distance: 500},
+            {name: 'ISO Cafeteria, Quezon City, Metro Manila, Philippines', distance: 200},
+            {name: 'Bellarmine Hall, Quezon City, Metro Manila, Philippines', distance: 400},
+            {name: 'Church of Gesu, Quezon City, Metro Manila, Philippines', distance: 450},
+            {name: 'Kostka Hall, Quezon City, Metro Manila, Philippines', distance: 300},
+            {name: 'Faura Hall, Quezon City, Metro Manila, Philippines', distance: 250},
+            {name: 'EBais, Quezon City, Metro Manila, Philippines', distance: 400},
+            {name: 'Cervini, Quezon City, Metro Manila, Philippines', distance: 350}
+        ];
+
+        //generates the map (Google maps API) and collects input
+        async function initMap() {
+            const { Map } = await google.maps.importLibrary("maps");
+
+            map = new Map(document.getElementById("map"), {
+                center: { lat: 14.639458, lng: 121.075997 },
+                zoom: 15,
+            });
+
+            directionsService = new google.maps.DirectionsService();
+            directionsRenderer = new google.maps.DirectionsRenderer();
+            directionsRenderer.setMap(map);
+
+            document.getElementById('routeForm').addEventListener('submit', function(event) {
+                
+                var startingPoint = document.getElementById('starting_point').value;
+                var distance = parseInt(document.getElementById('distance').value);
+
+                if (distance < 200) {
+                    alert("Distance too short, input something at least 200 meters.");
+                    return;
+                }
+
+                generate_Route(startingPoint, distance);
+                event.preventDefault();
+            });
+        }
+
+        async function generate_Route(startingPoint, inputDistance) {
+            let waypoints;
+            let totalDistance;
+            do {
+                waypoints = find_Way_points(inputDistance);
+                if (waypoints.length === 0) {
+                    alert("No waypoints found for the given distance.");
+                    return;
+                }
+
+                if (document.getElementById('loop').checked) {
+                    waypoints.push({location: startingPoint, stopover: true}); // Starting point is also last waypoint
+                }
+
+                totalDistance = await calculate_Route_Distance(startingPoint, waypoints);
+            } while (Math.abs(totalDistance - inputDistance) > 100); // Checks if distance is within 100m of input
+
+            find_Route(startingPoint, waypoints);
+        }
+
+        async function calculate_Route_Distance(startingPoint, waypoints) {
+            return new Promise((resolve, reject) => {
+                var request = {
+                    origin: startingPoint,
+                    destination: waypoints[waypoints.length - 1].location,
+                    waypoints: waypoints.slice(0, -1),
+                    travelMode: 'WALKING'
+                };
+
+                directionsService.route(request, function(response, status) {
+                    if (status == 'OK') {
+                        var totalDistance = 0;
+                        var route = response.routes[0];
+                        for (var i = 0; i < route.legs.length; i++) {
+                            totalDistance += route.legs[i].distance.value;
+                        }
+                        resolve(totalDistance);
+                    } else {
+                        reject('Error due to ' + status);
+                    }
+                });
+            });
+        }
+
+        //Displays route on the map
+        function find_Route(startingPoint, waypoints) {
+            var request = {
+                origin: startingPoint,
+                destination: waypoints[waypoints.length - 1].location,
+                waypoints: waypoints.slice(0, -1),
+                travelMode: 'WALKING'
+            };
+
+            directionsService.route(request, function(response, status) {
+                if (status === 'OK') {
+                    directionsRenderer.setDirections(response);
+                    display_Route_Info(response, waypoints);
+                } else {
+                    alert('Error due to ' + status);
+                }
+            });
+        }
+
+        // Displays route information (stops, distance)
+        function display_Route_Info(directionsResult, waypoints) {
+            var route = directionsResult.routes[0];
+            var totalDistance = 0;
+            for (var i = 0; i < route.legs.length; i++) {
+                totalDistance += route.legs[i].distance.value;
+            }
+            document.getElementById('routeInfo').innerHTML = 'Total Distance: ' + totalDistance + ' m';
+            document.getElementById('stopList').innerHTML = 'Stops: <br>' + waypoints.map(w => w.location).join('<br>');
+        }
+
+        function find_Way_points(inputDistance) {
+            var waypoints = [];
+            var totalDistanceCovered = 0;
+            var availableStops = [...stops];
+
+            while (totalDistanceCovered < inputDistance && availableStops.length > 0) {
+                // A random stop is selected
+                let randomIndex = Math.floor(Math.random() * availableStops.length);
+                let selectedStop = availableStops[randomIndex];
+
+                if (totalDistanceCovered + selectedStop.distance <= inputDistance) {
+                    waypoints.push({location: selectedStop.name, stopover: true});
+                    totalDistanceCovered += selectedStop.distance;
+                }
+
+                // Removes the selected stop from the available stops
+                availableStops.splice(randomIndex, 1);
+
+                // If input > 1800 (maximum found after first test), add more waypoints
+                if (inputDistance >= 1800 && availableStops.length > 0) {
+                    let additionalIndex = Math.floor(Math.random() * availableStops.length);
+                    let additionalStop = availableStops[additionalIndex];
+                    if (totalDistanceCovered + additionalStop.distance <= inputDistance) {
+                        waypoints.push({location: additionalStop.name, stopover: true});
+                        totalDistanceCovered += additionalStop.distance;
+                        availableStops.splice(additionalIndex, 1);
+                    }
+                }
+            }
+
+            return waypoints;
+        }
+
+        //for google maps
+        function load_Map() {
+            var script = document.createElement('script');
+            script.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyDUqB4uNMxXTqHIbnf3H_pu2erDnoojbK4&libraries=places&callback=initMap';
+            script.defer = true; script.async = true;
+            document.head.appendChild(script);
+        }
+
+        load_Map();
+    </script>
+</body>
+</html>
